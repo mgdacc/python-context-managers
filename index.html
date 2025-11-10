@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Presentación Interactiva: Context Managers en Python</title>
+    <style>
+        /* === ESTILOS GLOBALES Y DE ESCRITORIO === */
+        body {
+            font-family: Arial, sans-serif; background-color: #f0f0f0; margin: 0;
+            padding: 40px; display: flex; justify-content: center; align-items: center;
+            min-height: 100vh; box-sizing: border-box; transition: padding 0.3s ease;
+        }
+
+        .slideshow-container { position: relative; width: 90%; max-width: 960px; }
+        
+        .slide {
+            display: none; background-color: #fff; border: 1px solid #ccc;
+            height: 540px; padding: 40px 60px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            flex-direction: column; justify-content: center; position: relative;
+            box-sizing: border-box;
+        }
+
+        .fade { animation-name: fade; animation-duration: 0.5s; }
+        @keyframes fade { from {opacity: .4} to {opacity: 1} }
+
+        .prev, .next {
+            cursor: pointer; position: absolute; top: 50%; transform: translateY(-50%);
+            width: 50px; height: 50px; background-color: #cccccc; color: #333;
+            border-radius: 50%; box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            display: flex; justify-content: center; align-items: center;
+            font-weight: bold; font-size: 24px; transition: all 0.3s ease;
+            user-select: none; z-index: 10;
+        }
+
+        .prev { left: -70px; }
+        .next { right: -70px; }
+        .prev:hover, .next:hover { background-color: #aaaaaa; }
+
+        .slide h1 { font-size: 3.5em; text-align: center; border-bottom: 4px solid #11a800; padding-bottom: 20px; color: #005A9C; }
+        .slide h2 { font-size: 2.8em; margin-top: 0; margin-bottom: 30px; text-align: center; color: #005A9C; }
+        .single-content { text-align: center; }
+        .single-content p { font-size: 1.5em; color: #444; }
+        .single-content pre { font-size: 1.2em; display: inline-block; text-align: left; max-width: 100%; }
+        pre { background-color: #2d3636; color: #fff; padding: 15px; border-radius: 5px; font-size: 1.1em; white-space: pre-wrap; }
+        .footer { position: absolute; bottom: 20px; right: 40px; font-size: 1em; color: #888; }
+
+        /* === MEDIA QUERIES === */
+        @media screen and (max-width: 768px) {
+            body { padding: 15px; }
+            .slideshow-container { width: 100%; padding-bottom: 75px; }
+            .slide { height: auto; min-height: 75vh; padding: 20px 25px; }
+            .prev, .next { top: auto; bottom: 15px; width: 45px; height: 45px; }
+            .prev { left: 50%; transform: translateX(-110%); }
+            .next { left: 50%; transform: translateX(10%); right: auto; }
+            .slide h1 { font-size: 2.2em; }
+            .slide h2 { font-size: 1.8em; }
+            .single-content p { font-size: 1.1em; }
+            .single-content pre { font-size: 1em; }
+            .footer { font-size: 0.8em; right: 25px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="slideshow-container">
+        
+        <div class="slide fade">
+            <h1>Cheat Sheet de Python</h1>
+            <h2 style="color:#333; border:none;">Context Managers</h2>
+            <div class="footer">1 / 14</div>
+        </div>
+
+        <div class="slide fade">
+            <h2>El Problema: Gestión de Recursos</h2>
+            <div class="single-content"><p>Recursos como archivos o conexiones de red deben ser cerrados siempre, incluso si ocurre un error.</p><pre><code>f = open("archivo.txt", "w")
+f.write("Hola")
+# ¿Qué pasa si aquí ocurre un error?
+f.close() # Esta línea nunca se ejecutaría</code></pre></div>
+            <div class="footer">2 / 14</div>
+        </div>
+        
+        <div class="slide fade">
+            <h2>La Solución Clásica: <code>try...finally</code></h2>
+            <div class="single-content"><p>El bloque `finally` garantiza que el código de limpieza se ejecute siempre, pero es verboso.</p><pre><code>f = open("archivo.txt", "w")
+try:
+    f.write("Hola")
+finally:
+    f.close() # Se ejecuta sí o sí</code></pre></div>
+            <div class="footer">3 / 14</div>
+        </div>
+
+        <div class="slide fade">
+            <h2>La Solución "Pythónica": <code>with</code></h2>
+            <div class="single-content"><p>La declaración `with` simplifica esto enormemente. Garantiza que el recurso se cerrará automáticamente al salir del bloque.</p><pre><code>with open("archivo.txt", "w") as f:
+    f.write("Hola")
+# El archivo se cierra automáticamente aquí</code></pre></div>
+            <div class="footer">4 / 14</div>
+        </div>
+        
+        <div class="slide fade">
+            <h2>¿Qué es un Context Manager?</h2>
+            <div class="single-content"><p>Un objeto diseñado para usarse con la declaración `with`. Define qué hacer al "entrar" en el bloque y qué hacer al "salir".</p></div>
+            <div class="footer">5 / 14</div>
+        </div>
+
+        <div class="slide fade">
+            <h2>Crear un Context Manager (Clase)</h2>
+            <div class="single-content"><p>Para crear uno, necesitas una clase con dos métodos dunder: <code>__enter__</code> y <code>__exit__</code>.</p></div>
+            <div class="footer">6 / 14</div>
+        </div>
+
+        <div class="slide fade">
+            <h2>Método: <code>__enter__</code></h2>
+            <div class="single-content"><p>Se ejecuta al inicio del bloque `with`. Su valor de retorno es lo que se asigna a la variable después de `as`.</p><pre><code>class MiContexto:
+    def __enter__(self):
+        print("Entrando al contexto...")
+        return "Valor" # Esto va a la variable 'v'</code></pre></div>
+            <div class="footer">7 / 14</div>
+        </div>
+        
+        <div class="slide fade">
+            <h2>Método: <code>__exit__</code></h2>
+            <div class="single-content"><p>Se ejecuta al final del bloque `with`, sin importar cómo se salga (normalmente o por un error). Ideal para la limpieza.</p><pre><code>class MiContexto:
+    # ... __enter__ ...
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        print("Saliendo del contexto...")
+        # Los argumentos sirven para manejar excepciones si ocurrieron</code></pre></div>
+            <div class="footer">8 / 14</div>
+        </div>
+        
+        <div class="slide fade">
+            <h2>Ejemplo: Un Temporizador</h2>
+            <div class="single-content"><p>Un context manager perfecto para medir el tiempo de un bloque de código.</p><pre><code>import time
+
+class Timer:
+    def __enter__(self):
+        self.start = time.time()
+        return self # No necesitamos devolver nada especial
+    
+    def __exit__(self, *args):
+        end = time.time()
+        print(f"El bloque tardó {end - self.start:.4f}s")</code></pre></div>
+            <div class="footer">9 / 14</div>
+        </div>
+
+        <div class="slide fade">
+            <h2>Uso del Temporizador</h2>
+            <div class="single-content"><p>Ahora podemos "envolver" cualquier código con nuestro `Timer`.</p><pre><code>with Timer():
+    # Código que queremos medir
+    time.sleep(2)</code></pre></div>
+            <div class="footer">10 / 14</div>
+        </div>
+        
+        <div class="slide fade">
+            <h2>Forma Fácil: <code>@contextmanager</code></h2>
+            <div class="single-content"><p>El módulo `contextlib` ofrece un decorador para crear context managers a partir de una función generadora, de forma más simple.</p></div>
+            <div class="footer">11 / 14</div>
+        </div>
+
+        <div class="slide fade">
+            <h2>La Lógica de <code>@contextmanager</code></h2>
+            <div class="single-content"><p>Todo lo que está antes de `yield` es el `__enter__`. Todo lo que está después de `yield` es el `__exit__`.</p><pre><code>from contextlib import contextmanager
+import time
+
+@contextmanager
+def timer():
+    # --- Código de __enter__ ---
+    start = time.time()
+    yield # Aquí se ejecuta el código dentro del 'with'
+    # --- Código de __exit__ ---
+    end = time.time()
+    print(f"El bloque tardó {end - start:.4f}s")</code></pre></div>
+            <div class="footer">12 / 14</div>
+        </div>
+        
+        <div class="slide fade">
+            <h2>Uso del Decorador</h2>
+            <div class="single-content"><p>Se usa exactamente igual que la versión con clase.</p><pre><code>with timer():
+    time.sleep(1.5)</code></pre></div>
+            <div class="footer">13 / 14</div>
+        </div>
+        
+        <div class="slide fade">
+            <h2>Conclusión</h2>
+            <div class="single-content"><p>Los Context Managers y la declaración `with` son la forma idiomática y segura de gestionar recursos en Python, garantizando que las tareas de limpieza siempre se ejecuten.</p></div>
+            <div class="footer">14 / 14</div>
+        </div>
+
+        <a class="prev" onclick="plusSlides(-1)">&#10094;</a>
+        <a class="next" onclick="plusSlides(1)">&#10095;</a>
+    </div>
+
+    <script>
+        let slideIndex = 1;
+        showSlides(slideIndex);
+
+        function plusSlides(n) {
+            showSlides(slideIndex += n);
+        }
+
+        function showSlides(n) {
+            let i;
+            let slides = document.getElementsByClassName("slide");
+            if (n > slides.length) { slideIndex = 1 } 
+            if (n < 1) { slideIndex = slides.length }
+            
+            for (i = 0; i < slides.length; i++) {
+                slides[i].style.display = "none";
+            }
+            
+            slides[slideIndex - 1].style.display = "flex";
+        }
+    </script>
+
+</body>
+</html>
